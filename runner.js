@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const c = require("ansi-colors");
 
 class Runner {
   constructor() {
@@ -8,6 +9,7 @@ class Runner {
 
   async runTests() {
     for (let file of this.testFiles) {
+      console.log(c.gray(`------ ${file.shortName}`));
       const beforeEaches = [];
       global.beforeEach = (fn) => {
         beforeEaches.push(fn);
@@ -16,17 +18,17 @@ class Runner {
         beforeEaches.forEach((func) => func());
         try {
           fn();
-          console.log(`OK - ${desc}`);
+          console.log(c.green(`\tOK - ${desc}`));
         } catch (err) {
-          console.log(`X - ${desc}`);
-          console.log("\t", err.message);
+          const message = err.message.replace(/\n/g, "\n\t\t");
+          console.log(c.red(`\tX - ${desc}`));
+          console.log(c.red("\t" + message));
         }
       };
       try {
         require(file.name);
       } catch (err) {
-        console.log("X - Error loading file", file.name);
-        console.log(err);
+        console.log(c.red(err));
       }
     }
   }
@@ -37,7 +39,7 @@ class Runner {
       const filepath = path.join(targetPath, file);
       const stats = await fs.promises.lstat(filepath);
       if (stats.isFile() && file.includes(".test.js")) {
-        this.testFiles.push({ name: filepath });
+        this.testFiles.push({ name: filepath, shortName: file });
       } else if (stats.isDirectory()) {
         const childFiles = await fs.promises.readdir(filepath);
         files.push(...childFiles.map((f) => path.join(file, f)));
